@@ -1,0 +1,13 @@
+package ac.at.fhcampuswien.authenticationms;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AuthenticationMsApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AuthenticationMsApplication.class, args);
+    }
+
+}
