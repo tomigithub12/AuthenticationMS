@@ -1,0 +1,9 @@
+spring:
+  rabbitmq:
+    host: ec2-3-120-159-96.eu-central-1.compute.amazonaws.com
+    port: 8081
+    username: guest
+    password: guest
+
+#server:
+# port: 8082

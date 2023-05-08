@@ -1,13 +1,15 @@
 package ac.at.fhcampuswien.authenticationms.service;
 
-
+import ac.at.fhcampuswien.authenticationms.config.RabbitMQConfig;
 import ac.at.fhcampuswien.authenticationms.exceptions.CustomerNotFoundException;
 import ac.at.fhcampuswien.authenticationms.exceptions.InvalidTokenException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 import java.security.Key;
 import java.util.Date;
@@ -22,7 +24,7 @@ public class JwtService {
     public static final String SECRET = "58703273357638792F423F4528472B4B6250655368566D597133743677397A24";
 
     @Autowired
-    CustomerRepository customerRepository;
+    RabbitTemplate rabbitTemplate;
 
     public enum Token {
         AccessToken,
@@ -55,18 +57,27 @@ public class JwtService {
         }
     }
 
-    public void isTokenExpiredOrInvalid(String token) throws InvalidTokenException, CustomerNotFoundException {
-        if (extractExpiration(token).before(new Date())) {
-            throw new InvalidTokenException("Token is expired.");
+    public void isTokenExpiredOrInvalid(String token) throws InvalidTokenException {
+        try {
+            if (extractExpiration(token).before(new Date())) {
+                throw new InvalidTokenException("Token is expired.");
+            }
+            validateToken(token);
+        } catch (Exception ex){
+            throw new InvalidTokenException("Token is invalid");
         }
-        validateToken(token);
     }
 
     public void validateToken(String token) throws CustomerNotFoundException {
-        String userEmail = extractUserEmail(token);
+        try {
+            String userEmail = extractUserEmail(token);
 
-        if (!customerRepository.existsByeMail(userEmail)) {
-            throw new CustomerNotFoundException("Token is invalid.");
+            boolean customerExists = (boolean) rabbitTemplate.convertSendAndReceive(RabbitMQConfig.AUTH_EXCHANGE, RabbitMQConfig.CUSTOMER_EXISTENCE_MESSAGE_QUEUE, userEmail);
+            if (!customerExists) {
+                throw new CustomerNotFoundException("Token is invalid.");
+            }
+        } catch(Exception ex){
+            throw new CustomerNotFoundException("Token is invalid");
         }
     }
 
